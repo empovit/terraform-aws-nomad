@@ -197,15 +197,46 @@ data "template_file" "user_data_client" {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# DEPLOY THE CLUSTER IN THE DEFAULT VPC AND SUBNETS
-# Using the default VPC and subnets makes this example easy to run and test, but it means Consul and Nomad are
+# CREATE A VPC AND SUBNETS
+# Creating a VPC with a public network makes this example easy to run and test, but it means Consul and Nomad are
 # accessible from the public Internet. In a production deployment, we strongly recommend deploying into a custom VPC
 # and private subnets.
 # ---------------------------------------------------------------------------------------------------------------------
+resource "aws_vpc" "nomad_vpc" {
+  cidr_block            = var.subnet_cidr
+  tags = {
+    Name = "${var.owner_tag}-nomad-vpc"
+    Owner = var.owner_tag
+  }
+}
+
+resource "aws_internet_gateway" "nomad_internet_gw" {
+  vpc_id                = aws_vpc.nomad_vpc.id
+  tags = {
+    Name                = "${var.owner_tag}-nomad-internet-gw"
+    Owner               = var.owner_tag
+  }
+}
+
+resource "aws_route" "nomad_internet_access" {
+  route_table_id         = aws_vpc.nomad_vpc.main_route_table_id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.nomad_internet_gw.id
+}
+
+resource "aws_subnet" "nomad_subnet" {
+  vpc_id                  = aws_vpc.nomad_vpc.id
+  cidr_block              = var.subnet_cidr
+  availability_zone       = "${data.aws_region.current.name}a" # t2.micro may not exist in some AZs
+  map_public_ip_on_launch = true
+  tags = {
+    Name                  = "${var.owner_tag}-nomad-subnet-${data.aws_region.current.name}"
+    Owner                 = var.owner_tag
+  }
+}
 
 data "aws_vpc" "default" {
-  default = var.vpc_id == "" ? true : false
-  id      = var.vpc_id
+  id      = aws_vpc.nomad_vpc.id
 }
 
 data "aws_subnet_ids" "default" {

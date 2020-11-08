@@ -67,9 +67,15 @@ variable "ssh_key_name" {
   default     = ""
 }
 
-variable "vpc_id" {
-  description = "The ID of the VPC in which the nodes will be deployed.  Uses default VPC if not supplied."
+variable "owner_tag" {
+  description = "Add an owner tag where possible to make searching for resources easier"
   type        = string
-  default     = ""
+  default     = "nomad-example"
+}
+
+variable "subnet_cidr" {
+  description = "CIDR of the subnet to create in the VPC"
+  type        = string
+  default     = "10.70.0.0/28"
 }
 
